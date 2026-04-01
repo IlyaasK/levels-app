@@ -1,0 +1,26 @@
+name: Deploy Go Backend to VPS
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'backend-go/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Deploy via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}       # 77.42.82.186
+        username: ${{ secrets.VPS_USER }}   # root / ubuntu / etc
+        key: ${{ secrets.VPS_SSH_KEY }}     # Private RSA/Ed25519 key
+        script: |
+          cd ~/levels-app/backend-go   # Change to wherever you cloned it
+          git pull origin main
+          export PATH=$PATH:/usr/local/go/bin # ensure go is in PATH
+          go build -o levels-backend
+          pkill levels-backend || true
+          nohup ./levels-backend >/dev/null 2>&1 &

@@ -49,4 +49,16 @@ nohup ./levels-backend >/dev/null 2>&1 &
 
 > **Pro-Tip**: Since it’s a compiled binary, you don’t need NPM, Node.js, pm2, or containerization. It will run endlessly and natively update your database file (`backend-go/db.json`).
 
-Your server is now actively polling hourly and serving stats for your Android widget via `http://YOUR_VPS_IP:3000/api/stats`!
+---
+
+## Auto-Updating the Backend (CI/CD)
+
+We have included a GitHub Action (`deploy-backend.yml`) that will automatically SSH into your VPS, pull the latest code, recompile the Go binary, and silently restart it whenever you push changes to the `backend-go/` folder! 
+
+To enable this:
+1. Go to your GitHub Repository -> **Settings** -> **Secrets and variables** -> **Actions**
+2. Add the following **New repository secrets**:
+   - `VPS_HOST`: Your server IP (e.g. `77.42.82.186`)
+   - `VPS_USER`: Your SSH username (e.g. `root` or `ubuntu`)
+   - `VPS_SSH_KEY`: The raw text of your private SSH key (e.g. `~/.ssh/id_rsa`) that you use to log into the VPS.
+3. Make sure the absolute path inside the `.github/workflows/deploy-backend.yml` script (`cd ~/levels-app/backend-go`) matches exactly where you originally cloned it on your server.
