@@ -16,6 +16,7 @@ backend-go/levels-backend
 backend-go/db.json
 backend-go/.env
 backend-go/go_backend.log
+backend-go/db-go.json
 
 # Android App
 android/.gradle/
