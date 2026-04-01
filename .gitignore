@@ -1,0 +1,33 @@
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Node / Frontend / Old Backend
+node_modules/
+dist/
+build/
+.npm
+.env
+
+# Go Backend
+backend-go/levels-backend
+backend-go/db.json
+backend-go/.env
+backend-go/go_backend.log
+
+# Android App
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/*.iml
+android/.idea/modules.xml
+android/.idea/workspace.xml
+android/.idea/libraries/
+android/.cxx/
+
+# General DB / Config
+db.json
+*.log
