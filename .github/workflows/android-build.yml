@@ -30,8 +30,11 @@ jobs:
       working-directory: ./android
       run: gradle assembleDebug
 
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
+    - name: Upload APK as GitHub Release
+      uses: softprops/action-gh-release@v2
       with:
-        name: app-debug
-        path: android/app/build/outputs/apk/debug/app-debug.apk
+        tag_name: latest
+        name: "Levels App APK"
+        files: android/app/build/outputs/apk/debug/app-debug.apk
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
