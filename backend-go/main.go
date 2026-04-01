@@ -348,7 +348,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3000"
+		port = "8181"
 	}
 
 	log.Printf("Backend hourly polling agent (Go) active on port %s", port)
