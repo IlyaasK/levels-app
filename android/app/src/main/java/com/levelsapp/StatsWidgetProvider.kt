@@ -24,7 +24,7 @@ class StatsWidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         for (appWidgetId in appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, appWidgetId)
+            updateAppWidget(context, appWidgetManager, singleId = appWidgetId)
         }
     }
 
