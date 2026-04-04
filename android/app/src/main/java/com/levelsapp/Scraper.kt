@@ -57,11 +57,14 @@ object Scraper {
             val bReq = Request.Builder().url("https://boot.dev/u/${bootdevUser}").build()
             val bRes = client.newCall(bReq).execute()
             bRes.body?.string()?.let { html ->
-                val match = Regex("([0-9,]+)\\s*XP", RegexOption.IGNORE_CASE).find(html)
+                val doc = Jsoup.parse(html)
+                val text = doc.body().text().replace(Regex("\\s+"), " ")
+                
+                val match = Regex("([0-9,]+)\\s*XP", RegexOption.IGNORE_CASE).find(text)
                 if (match != null) {
                     bXp = match.groupValues[1].replace(",", "").toIntOrNull() ?: 0
                 } else {
-                    val crsMatch = Regex("(\\d+)\\s*Courses Completed", RegexOption.IGNORE_CASE).find(html)
+                    val crsMatch = Regex("(\\d+)\\s*Courses Completed", RegexOption.IGNORE_CASE).find(text)
                     if (crsMatch != null) {
                         bXp = (crsMatch.groupValues[1].toIntOrNull() ?: 0) * 1000
                     }
