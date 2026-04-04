@@ -335,6 +335,18 @@ func forcePollHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	if os.Getenv("CLI_MODE") == "true" {
+		pollStats()
+		
+		cacheMutex.RLock()
+		data, _ := json.Marshal(statsCache)
+		cacheMutex.RUnlock()
+		
+		os.WriteFile(filepath.Join(filepath.Dir(dbPath), "stats.json"), data, 0644)
+		log.Println("CLI execution complete. stats.json created.")
+		return
+	}
+
 	go func() {
 		pollStats()
 		for {

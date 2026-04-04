@@ -1,0 +1,72 @@
+name: Hourly Stats Scraper (Serverless)
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Runs every hour
+  workflow_dispatch:      # Trigger manually
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          
+      - name: Download existing db.json from Gist
+        env:
+          GIST_ID: ${{ secrets.GIST_ID }}
+          GH_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: |
+          # If the Gist exists, pull down our existing database to persist state
+          if [ -n "$GIST_ID" ]; then
+             curl -s -H "Authorization: token $GH_TOKEN" https://api.github.com/gists/$GIST_ID | jq -r '.files["db.json"].content // "{}"' > backend-go/db.json
+          else
+             echo "GIST_ID not set! Cannot restore state."
+          fi
+
+      - name: Run Scraper
+        working-directory: ./backend-go
+        env:
+          BOOTDEV_USERNAME: ${{ secrets.BOOTDEV_USERNAME }}
+          MATHACADEMY_EMAIL: ${{ secrets.MATHACADEMY_EMAIL }}
+          MATHACADEMY_PASSWORD: ${{ secrets.MATHACADEMY_PASSWORD }}
+          CLI_MODE: "true"
+        run: |
+          go run main.go
+
+      - name: Update Gist with results
+        env:
+          GIST_ID: ${{ secrets.GIST_ID }}
+          GH_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: |
+          if [ -z "$GIST_ID" ] || [ -z "$GH_TOKEN" ]; then
+            echo "Missing GIST secrets. Cannot push results."
+            exit 1
+          fi
+          
+          # Escape file contents properly for JSON
+          DB_CONTENT=$(jq -Rs . < backend-go/db.json)
+          STATS_CONTENT=$(jq -Rs . < backend-go/stats.json)
+          
+          # Construct JSON payload utilizing jq
+          PAYLOAD=$(jq -n \
+            --argjson db "$DB_CONTENT" \
+            --argjson stats "$STATS_CONTENT" \
+            '{
+              description: "Levels Tracker Serverless Stats",
+              files: {
+                "db.json": { content: $db },
+                "stats.json": { content: $stats }
+              }
+            }')
+          
+          # Update the remote Gist
+          curl -s -X PATCH \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/gists/$GIST_ID \
+            -d "$PAYLOAD"
