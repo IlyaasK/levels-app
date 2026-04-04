@@ -1,22 +1,16 @@
 package com.levelsapp
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
+import android.content.Intent
 import android.widget.RemoteViews
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.json.JSONObject
 
 class StatsWidgetProvider : AppWidgetProvider() {
-
-    private val client = OkHttpClient()
-    // Serverless GitHub Gist endpoint
-    private val API_URL = "https://gist.githubusercontent.com/IlyaasK/cf3dcc625fa75ac0e519c57f3195dff8/raw/stats.json"
 
     override fun onUpdate(
         context: Context,
@@ -31,37 +25,30 @@ class StatsWidgetProvider : AppWidgetProvider() {
     private fun updateAppWidget(
         context: Context,
         appWidgetManager: AppWidgetManager,
-        appWidgetId: IntArray? = null,
         singleId: Int = -1
     ) {
+        val views = RemoteViews(context.packageName, R.layout.widget_stats)
+        views.setTextViewText(R.id.tv_widget_total_xp, "↻")
+        appWidgetManager.updateAppWidget(singleId, views)
+
         CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val request = Request.Builder().url(API_URL).build()
-                val response = client.newCall(request).execute()
-                val responseData = response.body?.string()
+            val stats = Scraper.pollStats(context) ?: Scraper.getCachedStats(context)
 
-                if (response.isSuccessful && responseData != null) {
-                    val json = JSONObject(responseData)
-                    val totalXp = json.optInt("totalDailyXp", 0).toString()
-                    val bootdevHours = json.optJSONObject("bootdev")?.optString("goHours", "--") ?: "--"
-                    val mathHours = json.optJSONObject("mathacademy")?.optString("calc2Hours", "--") ?: "--"
-
-                    withContext(Dispatchers.Main) {
-                        val views = RemoteViews(context.packageName, R.layout.widget_stats)
-                        views.setTextViewText(R.id.tv_total_xp, totalXp)
-                        views.setTextViewText(R.id.tv_bootdev_hours, bootdevHours)
-                        views.setTextViewText(R.id.tv_math_hours, mathHours)
-
-                        if (appWidgetId != null) {
-                            appWidgetManager.updateAppWidget(appWidgetId, views)
-                        } else if (singleId != -1) {
-                            appWidgetManager.updateAppWidget(singleId, views)
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            if (stats != null) {
+                views.setTextViewText(R.id.tv_widget_total_xp, stats.totalDailyXp)
+                views.setTextViewText(R.id.tv_widget_go_hours, stats.bootdevGoHours)
+                views.setTextViewText(R.id.tv_widget_calc2_hours, stats.mathacademyCalc2Hours)
+            } else {
+                views.setTextViewText(R.id.tv_widget_total_xp, "--")
+                views.setTextViewText(R.id.tv_widget_go_hours, "--")
+                views.setTextViewText(R.id.tv_widget_calc2_hours, "--")
             }
+
+            val intent = Intent(context, MainActivity::class.java)
+            val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+            views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
+
+            appWidgetManager.updateAppWidget(singleId, views)
         }
     }
 }

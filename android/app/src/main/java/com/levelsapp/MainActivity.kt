@@ -1,70 +1,93 @@
 package com.levelsapp
 
+import android.content.Context
 import android.os.Bundle
 import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import android.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.json.JSONObject
-import java.text.SimpleDateFormat
-import java.util.*
 
 class MainActivity : AppCompatActivity() {
-
-    private val client = OkHttpClient()
-    private val API_URL = "https://gist.githubusercontent.com/IlyaasK/cf3dcc625fa75ac0e519c57f3195dff8/raw/stats.json"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val btnRefresh = findViewById<Button>(R.id.btn_refresh)
-        btnRefresh.setOnClickListener { fetchStats() }
+        findViewById<Button>(R.id.btn_refresh).setOnClickListener { fetchStats() }
+        findViewById<Button>(R.id.btn_settings).setOnClickListener { showSettingsDialog() }
 
+        loadCachedStats()
         fetchStats()
     }
 
+    private fun loadCachedStats() {
+        val stats = Scraper.getCachedStats(this)
+        if (stats != null) {
+            findViewById<TextView>(R.id.tv_total_xp).text = stats.totalDailyXp
+            findViewById<TextView>(R.id.tv_go_hours).text = stats.bootdevGoHours
+            findViewById<TextView>(R.id.tv_calc2_hours).text = stats.mathacademyCalc2Hours
+            findViewById<TextView>(R.id.tv_last_updated).text = "Last updated: \n${stats.lastPolled}"
+        }
+    }
+
     private fun fetchStats() {
+        findViewById<Button>(R.id.btn_refresh).text = "↻ Polling..."
         CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val request = Request.Builder().url(API_URL).build()
-                val response = client.newCall(request).execute()
-                val body = response.body?.string()
-
-                if (response.isSuccessful && body != null) {
-                    val json = JSONObject(body)
-                    val totalXp = json.optInt("totalDailyXp", 0).toString()
-                    val goHours = json.optJSONObject("bootdev")?.optString("goHours", "--") ?: "--"
-                    val calc2Hours = json.optJSONObject("mathacademy")?.optString("calc2Hours", "--") ?: "--"
-                    val lastPolled = json.optString("lastPolled", "")
-
-                    withContext(Dispatchers.Main) {
-                        findViewById<TextView>(R.id.tv_total_xp).text = totalXp
-                        findViewById<TextView>(R.id.tv_go_hours).text = goHours
-                        findViewById<TextView>(R.id.tv_calc2_hours).text = calc2Hours
-                        if (lastPolled.isNotEmpty()) {
-                            try {
-                                val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault())
-                                val date = sdf.parse(lastPolled)
-                                val fmt = SimpleDateFormat("h:mm a", Locale.getDefault())
-                                findViewById<TextView>(R.id.tv_last_updated).text = "Last updated: ${fmt.format(date!!)}"
-                            } catch (_: Exception) {
-                                findViewById<TextView>(R.id.tv_last_updated).text = "Last updated: $lastPolled"
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "Could not reach server", Toast.LENGTH_SHORT).show()
+            val stats = Scraper.pollStats(this@MainActivity)
+            withContext(Dispatchers.Main) {
+                findViewById<Button>(R.id.btn_refresh).text = "↻ Refresh"
+                if (stats != null) {
+                    loadCachedStats()
+                } else {
+                    Toast.makeText(this@MainActivity, "Update failed. Check credentials in Settings.", Toast.LENGTH_LONG).show()
                 }
             }
         }
+    }
+
+    private fun showSettingsDialog() {
+        val db = getSharedPreferences("levels_db", Context.MODE_PRIVATE)
+        val layout = LinearLayout(this).apply { 
+            orientation = LinearLayout.VERTICAL
+            setPadding(50, 50, 50, 50) 
+        }
+        
+        val bootdevInput = EditText(this).apply { 
+            hint = "Boot.dev Username"
+            setText(db.getString("CREDS_BOOTDEV", "")) 
+        }
+        val maEmailInput = EditText(this).apply { 
+            hint = "MathAcademy Email"
+            setText(db.getString("CREDS_MA_EMAIL", "")) 
+        }
+        val maPassInput = EditText(this).apply { 
+            hint = "MathAcademy Password"
+            setText(db.getString("CREDS_MA_PASS", "")) 
+        }
+        
+        layout.addView(bootdevInput)
+        layout.addView(maEmailInput)
+        layout.addView(maPassInput)
+
+        AlertDialog.Builder(this)
+            .setTitle("Scraper Credentials")
+            .setView(layout)
+            .setPositiveButton("Save") { _, _ ->
+                db.edit()
+                    .putString("CREDS_BOOTDEV", bootdevInput.text.toString())
+                    .putString("CREDS_MA_EMAIL", maEmailInput.text.toString())
+                    .putString("CREDS_MA_PASS", maPassInput.text.toString())
+                    .apply()
+                fetchStats()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 }
