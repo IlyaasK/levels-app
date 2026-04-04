@@ -28,20 +28,20 @@ class StatsWidgetProvider : AppWidgetProvider() {
         singleId: Int = -1
     ) {
         val views = RemoteViews(context.packageName, R.layout.widget_stats)
-        views.setTextViewText(R.id.tv_widget_total_xp, "↻")
+        views.setTextViewText(R.id.tv_total_xp, "↻")
         appWidgetManager.updateAppWidget(singleId, views)
 
         CoroutineScope(Dispatchers.IO).launch {
             val stats = Scraper.pollStats(context) ?: Scraper.getCachedStats(context)
 
             if (stats != null) {
-                views.setTextViewText(R.id.tv_widget_total_xp, stats.totalDailyXp)
-                views.setTextViewText(R.id.tv_widget_go_hours, stats.bootdevGoHours)
-                views.setTextViewText(R.id.tv_widget_calc2_hours, stats.mathacademyCalc2Hours)
+                views.setTextViewText(R.id.tv_total_xp, stats.totalDailyXp)
+                views.setTextViewText(R.id.tv_bootdev_hours, stats.bootdevGoHours)
+                views.setTextViewText(R.id.tv_math_hours, stats.mathacademyCalc2Hours)
             } else {
-                views.setTextViewText(R.id.tv_widget_total_xp, "--")
-                views.setTextViewText(R.id.tv_widget_go_hours, "--")
-                views.setTextViewText(R.id.tv_widget_calc2_hours, "--")
+                views.setTextViewText(R.id.tv_total_xp, "--")
+                views.setTextViewText(R.id.tv_bootdev_hours, "--")
+                views.setTextViewText(R.id.tv_math_hours, "--")
             }
 
             val intent = Intent(context, MainActivity::class.java)
