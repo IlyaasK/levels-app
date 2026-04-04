@@ -18,7 +18,7 @@ import java.util.*
 class MainActivity : AppCompatActivity() {
 
     private val client = OkHttpClient()
-    private val API_URL = "http://77.42.82.186:8181/api/stats"
+    private val API_URL = "https://gist.githubusercontent.com/IlyaasK/cf3dcc625fa75ac0e519c57f3195dff8/raw/stats.json"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

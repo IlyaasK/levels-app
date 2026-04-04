@@ -15,8 +15,8 @@ import org.json.JSONObject
 class StatsWidgetProvider : AppWidgetProvider() {
 
     private val client = OkHttpClient()
-    // VPS Deployment endpoint
-    private val API_URL = "http://77.42.82.186:8181/api/stats"
+    // Serverless GitHub Gist endpoint
+    private val API_URL = "https://gist.githubusercontent.com/IlyaasK/cf3dcc625fa75ac0e519c57f3195dff8/raw/stats.json"
 
     override fun onUpdate(
         context: Context,
