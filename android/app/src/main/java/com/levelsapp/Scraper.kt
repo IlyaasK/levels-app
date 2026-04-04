@@ -131,14 +131,15 @@ object Scraper {
             db.edit().putInt("bootdev_current", bXp).apply()
 
             val bDaily = java.lang.Math.max(0, bXp - bStartTotal)
-            val totalDailyXp = bDaily + mDaily
+            val totalDailyXpMins = bDaily + mDaily
+            val totalDailyXpHours = String.format(Locale.getDefault(), "%.1f", totalDailyXpMins / 60.0)
 
             val calc2Hours = if (mTotal > 0) String.format(Locale.getDefault(), "%.1f", (15404.0 - mTotal) / 60.0) else "0.0"
             val goHours = if (bXp > 0) String.format(Locale.getDefault(), "%.1f", (1030383.0 - bXp) / 1800.0) else "0.0"
 
             val lastPolled = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault()).format(Date())
 
-            val finalStats = Stats(totalDailyXp.toString(), goHours, calc2Hours, lastPolled)
+            val finalStats = Stats(totalDailyXpHours, goHours, calc2Hours, lastPolled)
 
             db.edit()
                 .putString("CACHE_totalDailyXp", finalStats.totalDailyXp)
