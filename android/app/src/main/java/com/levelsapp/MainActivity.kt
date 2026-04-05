@@ -13,6 +13,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.ValueFormatter
+import android.graphics.Color
+import org.json.JSONArray
 
 class MainActivity : AppCompatActivity() {
 
@@ -34,6 +42,80 @@ class MainActivity : AppCompatActivity() {
             findViewById<TextView>(R.id.tv_go_hours).text = stats.bootdevGoHours
             findViewById<TextView>(R.id.tv_calc2_hours).text = stats.mathacademyCalc2Hours
             findViewById<TextView>(R.id.tv_last_updated).text = "Last updated: \n${stats.lastPolled}"
+            setupChart()
+        }
+    }
+
+    private fun setupChart() {
+        val chart = findViewById<LineChart>(R.id.chart_daily_xp)
+        val db = getSharedPreferences("levels_db", Context.MODE_PRIVATE)
+        val historyStr = db.getString("history_log", "[]") ?: "[]"
+        
+        val entries = ArrayList<Entry>()
+        val labels = ArrayList<String>()
+
+        try {
+            val array = JSONArray(historyStr)
+
+            // Include TODAY's current data as the final point!
+            val totalDailyXpStr = findViewById<TextView>(R.id.tv_total_xp).text.toString()
+            val todaysHours = totalDailyXpStr.toFloatOrNull() ?: 0f
+
+            for (i in 0 until array.length()) {
+                val item = array.getJSONObject(i)
+                val hours = item.optDouble("hours", 0.0).toFloat()
+                val dateStr = item.optString("date", "")
+                
+                val shortDate = if (dateStr.length >= 10) dateStr.substring(5) else dateStr
+                labels.add(shortDate)
+                entries.add(Entry(i.toFloat(), hours))
+            }
+
+            labels.add("Today")
+            entries.add(Entry(entries.size.toFloat(), todaysHours))
+
+            val dataSet = LineDataSet(entries, "Daily Hours")
+            dataSet.color = Color.parseColor("#FFD700")
+            dataSet.valueTextColor = Color.WHITE
+            dataSet.valueTextSize = 10f
+            dataSet.lineWidth = 2.5f
+            dataSet.setCircleColor(Color.parseColor("#FFD700"))
+            dataSet.circleRadius = 4f
+            dataSet.setDrawCircleHole(false)
+            dataSet.mode = LineDataSet.Mode.CUBIC_BEZIER
+            dataSet.setDrawFilled(true)
+            dataSet.fillColor = Color.parseColor("#FFD700")
+            dataSet.fillAlpha = 50
+
+            val lineData = LineData(dataSet)
+            chart.data = lineData
+
+            val xAxis = chart.xAxis
+            xAxis.position = XAxis.XAxisPosition.BOTTOM
+            xAxis.textColor = Color.parseColor("#AAAAAA")
+            xAxis.setDrawGridLines(false)
+            xAxis.granularity = 1f
+            xAxis.valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val idx = value.toInt()
+                    if (idx >= 0 && idx < labels.size) {
+                        return labels[idx]
+                    }
+                    return ""
+                }
+            }
+
+            chart.axisLeft.textColor = Color.parseColor("#AAAAAA")
+            chart.axisLeft.axisMinimum = 0f
+            chart.axisRight.isEnabled = false
+            chart.legend.textColor = Color.WHITE
+            chart.description.isEnabled = false
+
+            chart.animateX(500)
+            chart.invalidate()
+
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 

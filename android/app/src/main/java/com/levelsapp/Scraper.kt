@@ -10,6 +10,8 @@ import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.Jsoup
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -113,22 +115,50 @@ object Scraper {
                 }
             }
 
-            // Calc processDailyStats for bootdev
+            // History & Daily Calculation
             val bLastDate = db.getString("bootdev_date", "")
             var bStartTotal = db.getInt("bootdev_start", bXp)
             var bCurrentTotal = db.getInt("bootdev_current", bXp)
+            var mStartTotal = db.getInt("mathacademy_start", mTotal)
+            var mCurrentTotal = db.getInt("mathacademy_current", mTotal)
 
             if (bLastDate == "") {
                 db.edit().putString("bootdev_date", today)
                     .putInt("bootdev_start", bXp)
-                    .putInt("bootdev_current", bXp).apply()
+                    .putInt("bootdev_current", bXp)
+                    .putInt("mathacademy_start", mTotal)
+                    .putInt("mathacademy_current", mTotal)
+                    .apply()
             } else if (bLastDate != today) {
+                // Compute the finalized XP for bLastDate (yesterday/previous day)
+                val pastBDaily = java.lang.Math.max(0, bCurrentTotal - bStartTotal)
+                val pastMDaily = java.lang.Math.max(0, mCurrentTotal - mStartTotal)
+                val pastTotalHrs = (pastBDaily + pastMDaily) / 60.0
+
+                // Append to history log
+                val historyStr = db.getString("history_log", "[]") ?: "[]"
+                try {
+                    val historyArray = JSONArray(historyStr)
+                    val newEntry = JSONObject()
+                    newEntry.put("date", bLastDate)
+                    newEntry.put("hours", String.format(Locale.US, "%.1f", pastTotalHrs).toDouble())
+                    historyArray.put(newEntry)
+                    
+                    db.edit().putString("history_log", historyArray.toString()).apply()
+                } catch (e: Exception) { e.printStackTrace() }
+
+                // Roll over anchors for the new day
                 bStartTotal = if (bCurrentTotal > 0) bCurrentTotal else bXp
+                mStartTotal = if (mCurrentTotal > 0) mCurrentTotal else mTotal
+                
                 db.edit().putString("bootdev_date", today)
-                    .putInt("bootdev_start", bStartTotal).apply()
+                    .putInt("bootdev_start", bStartTotal)
+                    .putInt("mathacademy_start", mStartTotal)
+                    .apply()
             }
 
-            db.edit().putInt("bootdev_current", bXp).apply()
+            db.edit().putInt("bootdev_current", bXp)
+                     .putInt("mathacademy_current", mTotal).apply()
 
             val bDaily = java.lang.Math.max(0, bXp - bStartTotal)
             val totalDailyXpMins = bDaily + mDaily
