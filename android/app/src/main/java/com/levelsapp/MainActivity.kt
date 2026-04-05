@@ -159,12 +159,14 @@ class MainActivity : AppCompatActivity() {
 
                 if (response.isSuccessful && body != null) {
                     val json = JSONObject(body)
-                    val publishedAt = json.optString("published_at", "")
                     val assets = json.optJSONArray("assets")
                     var downloadUrl = ""
+                    var updatedAt = ""
                     
                     if (assets != null && assets.length() > 0) {
-                        downloadUrl = assets.getJSONObject(0).optString("browser_download_url", "")
+                        val asset = assets.getJSONObject(0)
+                        downloadUrl = asset.optString("browser_download_url", "")
+                        updatedAt = asset.optString("updated_at", "")
                     }
 
                     val db = getSharedPreferences("levels_db", Context.MODE_PRIVATE)
@@ -172,11 +174,11 @@ class MainActivity : AppCompatActivity() {
 
                     if (savedDate == "") {
                         // First run, lock in the current date
-                        db.edit().putString("installed_apk_date", publishedAt).apply()
-                    } else if (publishedAt != "" && publishedAt != savedDate && downloadUrl.isNotEmpty()) {
+                        db.edit().putString("installed_apk_date", updatedAt).apply()
+                    } else if (updatedAt != "" && updatedAt != savedDate && downloadUrl.isNotEmpty()) {
                         // An update is available!
                         withContext(Dispatchers.Main) {
-                            showUpdateDialog(downloadUrl, publishedAt)
+                            showUpdateDialog(downloadUrl, updatedAt)
                         }
                     }
                 }
