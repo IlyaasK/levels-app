@@ -33,12 +33,6 @@ import androidx.core.content.FileProvider
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
-import androidx.work.Constraints
-import androidx.work.NetworkType
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.ExistingPeriodicWorkPolicy
-import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
@@ -52,23 +46,6 @@ class MainActivity : AppCompatActivity() {
         loadCachedStats()
         fetchStats()
         checkForUpdates()
-        setupBackgroundWorker()
-    }
-
-    private fun setupBackgroundWorker() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
-            
-        val dailyWorkRequest = PeriodicWorkRequestBuilder<ScraperWorker>(24, TimeUnit.HOURS)
-            .setConstraints(constraints)
-            .build()
-            
-        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
-            "LevelsDailyScraper",
-            ExistingPeriodicWorkPolicy.KEEP,
-            dailyWorkRequest
-        )
     }
 
     private fun loadCachedStats() {
