@@ -133,7 +133,7 @@ object Scraper {
                 // Compute the finalized XP for bLastDate (yesterday/previous day)
                 val pastBDaily = java.lang.Math.max(0, bCurrentTotal - bStartTotal)
                 val pastMDaily = java.lang.Math.max(0, mCurrentTotal - mStartTotal)
-                val pastTotalHrs = (pastBDaily + pastMDaily) / 60.0
+                val pastTotalHrs = ((pastBDaily / 100.0) + pastMDaily) / 60.0
 
                 // Append to history log
                 val historyStr = db.getString("history_log", "[]") ?: "[]"
@@ -160,12 +160,20 @@ object Scraper {
             db.edit().putInt("bootdev_current", bXp)
                      .putInt("mathacademy_current", mTotal).apply()
 
+            var bootdevGoal = db.getInt("bootdev_goal", 0)
+            if (bootdevGoal == 0 && bXp > 0) {
+                // Initialize the total goal dynamically to exactly 276 hours ahead of right now
+                // 100 XP = 1 min -> 6000 XP = 1 hour -> 276 hours = 1,656,000 XP
+                bootdevGoal = bXp + 1656000
+                db.edit().putInt("bootdev_goal", bootdevGoal).apply()
+            }
+
             val bDaily = java.lang.Math.max(0, bXp - bStartTotal)
-            val totalDailyXpMins = bDaily + mDaily
+            val totalDailyXpMins = (bDaily / 100.0) + mDaily
             val totalDailyXpHours = String.format(Locale.getDefault(), "%.1f", totalDailyXpMins / 60.0)
 
             val calc2Hours = if (mTotal > 0) String.format(Locale.getDefault(), "%.1f", (15404.0 - mTotal) / 60.0) else "0.0"
-            val goHours = if (bXp > 0) String.format(Locale.getDefault(), "%.1f", (1030383.0 - bXp) / 1800.0) else "0.0"
+            val goHours = if (bXp > 0 && bootdevGoal > 0) String.format(Locale.getDefault(), "%.1f", (bootdevGoal - bXp) / 6000.0) else "0.0"
 
             val lastPolled = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.getDefault()).format(Date())
 
