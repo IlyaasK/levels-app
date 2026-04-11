@@ -70,10 +70,10 @@ class MainActivity : AppCompatActivity() {
         try {
             val array = JSONArray(historyStr)
 
-            val bTotal = sharedPrefs.getInt("bootdev_total", 0)
-            val mTotal = sharedPrefs.getInt("mathacademy_total", 0)
-            val bDaily = java.lang.Math.max(0, bTotal - sharedPrefs.getInt("bootdev_start", 0))
-            val mDaily = java.lang.Math.max(0, mTotal - sharedPrefs.getInt("mathacademy_start", 0))
+            val bTotal = db.getInt("bootdev_current", 0)
+            val mTotal = db.getInt("mathacademy_current", 0)
+            val bDaily = java.lang.Math.max(0, bTotal - db.getInt("bootdev_start", 0))
+            val mDaily = java.lang.Math.max(0, mTotal - db.getInt("mathacademy_start", 0))
             
             val totalDailyXpMins = (bDaily / 100.0) + mDaily
             val todaysHours = (totalDailyXpMins / 60.0).toFloat()
