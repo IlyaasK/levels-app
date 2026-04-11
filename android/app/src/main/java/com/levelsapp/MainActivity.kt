@@ -70,9 +70,13 @@ class MainActivity : AppCompatActivity() {
         try {
             val array = JSONArray(historyStr)
 
-            // Include TODAY's current data as the final point!
-            val totalDailyXpStr = findViewById<TextView>(R.id.tv_total_xp).text.toString()
-            val todaysHours = totalDailyXpStr.toFloatOrNull() ?: 0f
+            val bTotal = sharedPrefs.getInt("bootdev_total", 0)
+            val mTotal = sharedPrefs.getInt("mathacademy_total", 0)
+            val bDaily = java.lang.Math.max(0, bTotal - sharedPrefs.getInt("bootdev_start", 0))
+            val mDaily = java.lang.Math.max(0, mTotal - sharedPrefs.getInt("mathacademy_start", 0))
+            
+            val totalDailyXpMins = (bDaily / 100.0) + mDaily
+            val todaysHours = (totalDailyXpMins / 60.0).toFloat()
 
             for (i in 0 until array.length()) {
                 val item = array.getJSONObject(i)
@@ -152,6 +156,7 @@ class MainActivity : AppCompatActivity() {
             try {
                 val request = Request.Builder()
                     .url("https://api.github.com/repos/IlyaasK/levels-app/releases/tags/latest")
+                    .header("User-Agent", "LevelsApp-AutoUpdater")
                     .header("Accept", "application/vnd.github.v3+json")
                     .build()
                 val response = OkHttpClient().newCall(request).execute()
@@ -215,7 +220,7 @@ class MainActivity : AppCompatActivity() {
                 val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
                 if (id == downloadId) {
                     getSharedPreferences("levels_db", Context.MODE_PRIVATE).edit().putString("installed_apk_date", newPublishedAt).apply()
-                    installApk()
+                    installApk(manager.getUriForDownloadedFile(id ?: -1L))
                     unregisterReceiver(this)
                 }
             }
@@ -230,11 +235,9 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, "Downloading update in background...", Toast.LENGTH_SHORT).show()
     }
 
-    private fun installApk() {
+    private fun installApk(uri: Uri?) {
         try {
-            val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "levels-app-update.apk")
-            if (file.exists()) {
-                val uri = FileProvider.getUriForFile(this, "com.levelsapp.fileprovider", file)
+            if (uri != null) {
                 val intent = Intent(Intent.ACTION_VIEW).apply {
                     setDataAndType(uri, "application/vnd.android.package-archive")
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
